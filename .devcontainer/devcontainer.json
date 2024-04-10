@@ -28,5 +28,5 @@
 	"postCreateCommand": "npm install -g @google/clasp; npm i -S @types/google-apps-script",
 
 	// Uncomment to connect as a non-root user. See https://aka.ms/vscode-remote/containers/non-root.
-	// "remoteUser": "node"
+	"remoteUser": "node"
 }
