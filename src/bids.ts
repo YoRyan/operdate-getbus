@@ -22,16 +22,32 @@ type OnDemandRun = {
 
 type Run = { number: string } & (BigBusRun | OnDemandRun);
 
+type Operator = string;
+
+type Bid = {
+    number: string
+    sunday?: Run
+    monday?: Run
+    tuesday?: Run
+    wednesday?: Run
+    thursday?: Run
+    friday?: Run
+    saturday?: Run
+    assigned?: Operator
+}
+
+type VacationRelief = {
+    weekOf: Date
+    assignments: Map<Operator, Bid>
+}
+
 
 function readRuns(): Map<string, Run> {
-    const allData = SpreadsheetApp
-        .getActiveSpreadsheet()
-        .getSheetByName("Runs")
-        .getRange("A1")
-        .getDataRegion();
-    // Skip the header row.
-    const range = allData.offset(1, 0, allData.getHeight() - 1);
-
+    const range = getDataRegionWithoutHeader(
+        SpreadsheetApp
+            .getActiveSpreadsheet()
+            .getSheetByName("Runs")
+    );
     const runs = new Map<string, Run>();
 
     for (const [number, block, report, signOut] of range.getDisplayValues()) {
@@ -96,4 +112,71 @@ function getRunPay(run: Run): string {
     const hh = Math.floor(minutes / 60) + "";
     const mm = (minutes % 60 + "").padStart(2, "0");
     return `pays ${hh}:${mm}`;
+}
+
+function readBids(runs: Map<string, Run>): Map<string, Bid> {
+    const sheet = SpreadsheetApp
+        .getActiveSpreadsheet()
+        .getSheetByName("Bids");
+
+    const bids: [string, Bid][] = getDataRegionWithoutHeader(sheet)
+        .getDisplayValues()
+        .map(([number, su, m, tu, w, th, f, sa, driver]) => {
+            function getRun(runNumber: string) {
+                return runNumber !== "" ? runs.get(runNumber) : undefined;
+            }
+
+            return [
+                number,
+                {
+                    number,
+                    sunday: getRun(su),
+                    monday: getRun(m),
+                    tuesday: getRun(tu),
+                    wednesday: getRun(w),
+                    thursday: getRun(th),
+                    friday: getRun(f),
+                    saturday: getRun(sa),
+                    assigned: driver !== "" ? readOperator(driver) : undefined
+                }
+            ];
+        });
+
+    return new Map<string, Bid>(bids);
+}
+
+function readVacationRelief(bids: Map<string, Bid>): VacationRelief[] {
+    const sheet = SpreadsheetApp
+        .getActiveSpreadsheet()
+        .getSheetByName("Vacation Relief");
+    const [names] = sheet
+        .getRange("B1:K1")
+        .getDisplayValues();
+    const drivers = names.map(readOperator);
+
+    return getDataRegionWithoutHeader(sheet)
+        .getDisplayValues()
+        .map(([weekOf, ...bidNumbers]) => {
+            const assignments = new Map<Operator, Bid>(
+                bidNumbers.map((number, i) => [drivers[i], bids.get(number)])
+            );
+            return {
+                weekOf: new Date(weekOf),
+                assignments
+            };
+        });
+}
+
+/** Standardize driver names for reliable commparison. */
+function readOperator(name: string): Operator {
+    return name
+        .toUpperCase()
+        .replaceAll(/(\.\s)+/g, " ");
+}
+
+function getDataRegionWithoutHeader(sheet: GoogleAppsScript.Spreadsheet.Sheet) {
+    const dataRegion = sheet
+        .getRange("A1")
+        .getDataRegion();
+    return dataRegion.offset(1, 0, dataRegion.getHeight() - 1);
 }

@@ -14,6 +14,8 @@ function onOpen() {
         .addItem("Populate Today", "doOperdateToday")
         .addItem("Populate Tomorrow", "doOperdateTomorrow")
         .addItem("Populate Date...", "doOperdateDate")
+        .addSeparator()
+        .addItem("Populate Vacation Relief...", "doOperdateVacationRelief")
         .addToUi();
 }
 
@@ -119,6 +121,46 @@ function populateEventsFor(date: Date) {
     } else {
         ui.alert("Set an assignment first.")
     }
+
+    addToCalendar(events);
+}
+
+function doOperdateVacationRelief() {
+    const response = ui.prompt("Enter driver name:");
+
+    if (response.getSelectedButton() !== ui.Button.OK) {
+        return;
+    }
+
+    const driver = readOperator(response.getResponseText());
+    const bids = readBids(readRuns());
+
+    const events = readVacationRelief(bids)
+        .map(({ weekOf, assignments }): Event[] => {
+            const bid = assignments.get(driver);
+
+            if (bid === undefined) {
+                return [];
+            } else {
+                const schedule = [
+                    bid.sunday, bid.monday, bid.tuesday,
+                    bid.wednesday, bid.thursday, bid.friday, bid.saturday
+                ];
+
+                const events: Event[] = [];
+
+                let currentDay = weekOf;
+                for (const run of schedule) {
+                    if (run !== undefined) {
+                        events.push(...createRunEvents(run, currentDay));
+                    }
+                    currentDay = getTomorrow(currentDay);
+                }
+
+                return events;
+            }
+        })
+        .flat();
 
     addToCalendar(events);
 }
