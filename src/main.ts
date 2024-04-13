@@ -91,7 +91,7 @@ function populateEventsFor(date: Date) {
         const run = readRuns().get(number);
 
         if (run) {
-            events.push(...createRunEvents(number, run, date));
+            events.push(...createRunEvents(run, date));
         } else {
             ui.alert(`Run ${number} not found.`);
         }
@@ -123,8 +123,10 @@ function populateEventsFor(date: Date) {
     addToCalendar(events);
 }
 
-function createRunEvents(number: string, run: Run, date: Date): Event[] {
-    switch (run.mode) {
+function createRunEvents(run: Run, date: Date): Event[] {
+    const { number, mode } = run;
+
+    switch (mode) {
         case Mode.BigBus:
             {
                 const { block, span } = run.piece;

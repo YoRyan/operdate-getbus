@@ -20,7 +20,7 @@ type OnDemandRun = {
     secondSpan?: Span
 }
 
-type Run = BigBusRun | OnDemandRun;
+type Run = { number: string } & (BigBusRun | OnDemandRun);
 
 
 function readRuns(): Map<string, Run> {
@@ -34,9 +34,9 @@ function readRuns(): Map<string, Run> {
 
     const runs = new Map<string, Run>();
 
-    for (const [no, block, report, signOut] of range.getDisplayValues()) {
+    for (const [number, block, report, signOut] of range.getDisplayValues()) {
         const span = readSpan(report, signOut);
-        const last = runs.get(no);
+        const last = runs.get(number);
 
         let run: Run;
 
@@ -44,6 +44,7 @@ function readRuns(): Map<string, Run> {
             switch (last.mode) {
                 case Mode.BigBus:
                     run = {
+                        number,
                         mode: Mode.BigBus,
                         piece: last.piece,
                         secondPiece: { block, span }
@@ -51,6 +52,7 @@ function readRuns(): Map<string, Run> {
                     break;
                 case Mode.OnDemand:
                     run = {
+                        number,
                         mode: Mode.OnDemand,
                         span: last.span,
                         secondSpan: span
@@ -59,17 +61,19 @@ function readRuns(): Map<string, Run> {
             }
         } else if (block) {
             run = {
+                number,
                 mode: Mode.BigBus,
                 piece: { block, span }
             }
         } else {
             run = {
+                number,
                 mode: Mode.OnDemand,
                 span
             };
         }
 
-        runs.set(no, run);
+        runs.set(number, run);
     }
 
     return runs;
