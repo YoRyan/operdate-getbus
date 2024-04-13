@@ -46,7 +46,7 @@ function readRuns(): Map<string, Run> {
     const range = getDataRegionWithoutHeader(
         SpreadsheetApp
             .getActiveSpreadsheet()
-            .getSheetByName("Runs")
+            .getSheetByName("Runs")!
     );
     const runs = new Map<string, Run>();
 
@@ -117,7 +117,7 @@ function getRunPay(run: Run): string {
 function readBids(runs: Map<string, Run>): Map<string, Bid> {
     const sheet = SpreadsheetApp
         .getActiveSpreadsheet()
-        .getSheetByName("Bids");
+        .getSheetByName("Bids")!;
 
     const bids: [string, Bid][] = getDataRegionWithoutHeader(sheet)
         .getDisplayValues()
@@ -148,7 +148,7 @@ function readBids(runs: Map<string, Run>): Map<string, Bid> {
 function readVacationRelief(bids: Map<string, Bid>): VacationRelief[] {
     const sheet = SpreadsheetApp
         .getActiveSpreadsheet()
-        .getSheetByName("Vacation Relief");
+        .getSheetByName("Vacation Relief")!;
     const [names] = sheet
         .getRange("B1:K1")
         .getDisplayValues();
@@ -158,7 +158,12 @@ function readVacationRelief(bids: Map<string, Bid>): VacationRelief[] {
         .getDisplayValues()
         .map(([weekOf, ...bidNumbers]) => {
             const assignments = new Map<Operator, Bid>(
-                bidNumbers.map((number, i) => [drivers[i], bids.get(number)])
+                bidNumbers
+                    .map((number, i): [Operator, Bid] | undefined => {
+                        const bid = bids.get(number);
+                        return bid ? [drivers[i], bid] : undefined;
+                    })
+                    .filter(entry => entry !== undefined) as [Operator, Bid][]
             );
             return {
                 weekOf: new Date(weekOf),

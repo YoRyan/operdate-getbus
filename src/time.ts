@@ -10,8 +10,12 @@ function readSpan(start: string, end: string): Span {
 
 function readTime(time: string): Time {
     const match = time.match(/(\d+):(\d+)/);
-    const [, hours, minutes] = match;
-    return parseInt(hours) * 60 + parseInt(minutes);
+    if (match) {
+        const [, hours, minutes] = match;
+        return parseInt(hours) * 60 + parseInt(minutes);
+    } else {
+        return NaN;
+    }
 }
 
 function getSpanMins(span: Span): number {
