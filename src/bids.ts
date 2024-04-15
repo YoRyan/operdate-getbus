@@ -109,9 +109,7 @@ function getRunPay(run: Run): string {
             break;
     }
 
-    const hh = Math.floor(minutes / 60) + "";
-    const mm = (minutes % 60 + "").padStart(2, "0");
-    return `pays ${hh}:${mm}`;
+    return "pays " + formatTime(minutes);
 }
 
 function readBids(runs: Map<string, Run>): Map<string, Bid> {

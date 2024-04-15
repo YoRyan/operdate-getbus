@@ -16,6 +16,8 @@ function onOpen() {
         .addItem("Populate Date...", "doOperdateDate")
         .addSeparator()
         .addItem("Populate Vacation Relief...", "doOperdateVacationRelief")
+        .addSeparator()
+        .addItem("Lookup Date...", "doOperdateLookup")
         .addToUi();
 }
 
@@ -207,5 +209,149 @@ function createRunEvents(run: Run, date: Date): Event[] {
 
                 return events;
             }
+    }
+}
+
+function doOperdateLookup() {
+    const response = ui.prompt("Enter date to lookup:");
+
+    if (response.getSelectedButton() !== ui.Button.OK) {
+        return;
+    }
+
+    // Create the new sheet.
+    const date = new Date(response.getResponseText());
+    const sheet = SpreadsheetApp
+        .getActiveSpreadsheet()
+        .insertSheet(
+            "Schedule for " +
+            `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`
+        );
+
+    // Map bids to their assigned drivers for the requested week.
+    const runs = readRuns();
+    const bids = readBids(runs);
+
+    const vacationRelief = getCurrentVacationWeek(date, readVacationRelief(bids));
+    const vacationReliefByBid = new Map<string, Operator>(
+        Array.from(vacationRelief?.assignments ?? [])
+            .map(([driver, bid]) => [bid.number, driver])
+    );
+    const bidsWithAssigned: [bid: Bid, driver: Operator][] =
+        Array.from(bids.values())
+            .map(bid => {
+                const vacationDriver = vacationReliefByBid?.get(bid.number);
+                return [bid, vacationDriver ?? bid.assigned];
+            })
+            .filter(([, driver]) => driver !== undefined) as [Bid, Operator][]
+
+    // Map runs to their assigned drivers for the requested day.
+    const runsWithAssigned = new Map<string, Operator>(
+        bidsWithAssigned
+            .map(([bid, driver]) => {
+                const runNumber = getWorkDayForBid(bid, date)?.number;
+                return runNumber ?
+                    [runNumber, driver] as [string, Operator] : undefined;
+            })
+            .filter(entry => entry !== undefined) as [string, Operator][]
+    );
+
+    // Print all runs with their assigned drivers.
+    sheet
+        .getRange("A1:G1")
+        .setValues([
+            [
+                "Run #", "Block", "Report Time",
+                "Split From", "Split To", "Sign Out", "Driver"
+            ]
+        ]);
+
+    for (const [i, number, run] of Array.from(runs)
+            .map(([number, run], i) => [i, number, run] as [number, string, Run])) {
+        const row = i + 2;
+        const driver = runsWithAssigned.get(number) ?? "";
+
+        let block: string;
+        let reportTime: Time;
+        let signOut: Time;
+        let splitFrom: Time | undefined;
+        let splitTo: Time | undefined;
+
+        switch (run.mode) {
+            case Mode.BigBus:
+                const { piece, secondPiece } = run;
+
+                [reportTime] = piece.span;
+
+                if (secondPiece) {
+                    block = `${piece.block} / ${secondPiece.block}`;
+                    [, signOut] = secondPiece.span;
+                    [, splitFrom] = piece.span;
+                    [splitTo] = secondPiece.span;
+                } else {
+                    block = piece.block;
+                    [, signOut] = piece.span;
+                    splitFrom = splitTo = undefined;
+                }
+                break;
+            case Mode.OnDemand:
+                const { span, secondSpan } = run;
+
+                block = "";
+                [reportTime] = span;
+
+                if (secondSpan) {
+                    [, signOut] = secondSpan;
+                    [, splitFrom] = span;
+                    [splitTo] = secondSpan;
+                } else {
+                    [, signOut] = span;
+                    splitFrom = splitTo = undefined;
+                }
+                break;
+        }
+
+        sheet
+            .getRange(`A${row}:G${row}`)
+            .setValues([[
+                number,
+                block,
+                formatTime(reportTime),
+                splitFrom ? formatTime(splitFrom) : "",
+                splitTo ? formatTime(splitTo) : "",
+                formatTime(signOut),
+                driver
+            ]]);
+    }
+}
+
+function getCurrentVacationWeek<T extends Vacation | VacationRelief>(
+        date: Date, weeks: T[]): T | undefined {
+    const dateTime = date.getTime();
+
+    return weeks.find(week => {
+        const endOfWeek = new Date(week.weekOf);
+        endOfWeek.setTime(endOfWeek.getTime() + (6 * 24 + 1) * 60 * 60 * 1000);
+
+        return dateTime >= week.weekOf.getTime() && dateTime <= endOfWeek.getTime();
+    });
+}
+
+function getWorkDayForBid(bid: Bid, date: Date): Run | undefined {
+    switch (date.getDay()) {
+        case 0:
+            return bid.sunday;
+        case 1:
+            return bid.monday;
+        case 2:
+            return bid.tuesday;
+        case 3:
+            return bid.wednesday;
+        case 4:
+            return bid.thursday;
+        case 5:
+            return bid.friday;
+        case 6:
+            return bid.saturday;
     }
 }

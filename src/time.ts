@@ -18,6 +18,12 @@ function readTime(time: string): Time {
     }
 }
 
+function formatTime(time: Time): string {
+    const hh = Math.floor(time / 60) + "";
+    const mm = (time % 60 + "").padStart(2, "0");
+    return hh + ":" + mm;
+}
+
 function getSpanMins(span: Span): number {
     const [start, end] = span;
     const wrapsDay = end < start;
