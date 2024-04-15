@@ -46,6 +46,7 @@ function setDateToMidnight(date: Date) {
 
 function getTomorrow(today: Date) {
     const date = new Date(today);
-    date.setTime(date.getTime() + 24 * 60 * 60 * 1000);
+    date.setTime(date.getTime() + (24 + 1) * 60 * 60 * 1000);
+    setDateToMidnight(date);
     return date;
 }
