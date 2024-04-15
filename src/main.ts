@@ -48,8 +48,8 @@ function setOperdateShow() {
                 const response2 = ui.prompt("Enter second start time:");
                 const showTime = response.getResponseText();
                 const secondShowTime =
-                    response2.getSelectedButton() === ui.Button.OK
-                        ? response2.getResponseText() : undefined;
+                    response2.getSelectedButton() === ui.Button.OK ?
+                        response2.getResponseText() : undefined;
                 properties.setProperties(
                     { showTime, secondShowTime } as UserProperties, true);
             }
@@ -99,8 +99,8 @@ function populateEventsFor(date: Date) {
         }
     } else if ("showTime" in user) {
         const showTime = readTime(user.showTime);
-        const secondShowTime = user.secondShowTime
-            ? readTime(user.secondShowTime) : undefined;
+        const secondShowTime = user.secondShowTime ?
+            readTime(user.secondShowTime) : undefined;
 
         if (secondShowTime) {
             events.push(
