@@ -36,9 +36,24 @@ type Bid = {
     assigned?: Operator
 }
 
+type ExtraBoardDaysOff = {
+    sunday: Set<Operator>
+    monday: Set<Operator>
+    tuesday: Set<Operator>
+    wednesday: Set<Operator>
+    thursday: Set<Operator>
+    friday: Set<Operator>
+    saturday: Set<Operator>
+}
+
 type VacationRelief = {
     weekOf: Date
-    assignments: Map<Operator, Bid>
+    assignments: Map<Operator, Bid | false>
+}
+
+type Vacation = {
+    weekOf: Date
+    operators: Set<Operator>
 }
 
 
@@ -143,6 +158,34 @@ function readBids(runs: Map<string, Run>): Map<string, Bid> {
     return new Map<string, Bid>(bids);
 }
 
+function readExtraBoardDaysOff(): ExtraBoardDaysOff {
+    const sheet = SpreadsheetApp
+        .getActiveSpreadsheet()
+        .getSheetByName("Extra Board Days Off")!;
+
+    function readRow(number: number) {
+        const drivers = sheet
+            .getRange(`${number}:${number}`)
+            .getDisplayValues()
+            .map(([_day, ...names]) => names)
+            .flat()
+            .filter(name => name)
+            .map(readOperator);
+
+        return new Set<Operator>(drivers);
+    }
+
+    return {
+        sunday: readRow(2),
+        monday: readRow(3),
+        tuesday: readRow(4),
+        wednesday: readRow(5),
+        thursday: readRow(6),
+        friday: readRow(7),
+        saturday: readRow(8)
+    }
+}
+
 function readVacationRelief(bids: Map<string, Bid>): VacationRelief[] {
     const sheet = SpreadsheetApp
         .getActiveSpreadsheet()
@@ -155,17 +198,31 @@ function readVacationRelief(bids: Map<string, Bid>): VacationRelief[] {
     return getDataRegionWithoutHeader(sheet)
         .getDisplayValues()
         .map(([weekOf, ...bidNumbers]) => {
-            const assignments = new Map<Operator, Bid>(
-                bidNumbers
-                    .map((number, i): [Operator, Bid] | undefined => {
-                        const bid = bids.get(number);
-                        return bid ? [drivers[i], bid] : undefined;
-                    })
-                    .filter(entry => entry !== undefined) as [Operator, Bid][]
+            const assignments = new Map<Operator, Bid | false>(
+                bidNumbers.map((number, i): [Operator, Bid | false] =>
+                    [drivers[i], bids.get(number) ?? false]
+                )
             );
             return {
                 weekOf: new Date(weekOf),
                 assignments
+            };
+        });
+}
+
+function readVacations(): Vacation[] {
+    const sheet = SpreadsheetApp
+        .getActiveSpreadsheet()
+        .getSheetByName("Vacations")!;
+
+    return getDataRegionWithoutHeader(sheet)
+        .getDisplayValues()
+        .map(([weekOf, ...names]) => {
+            const drivers = names.map(readOperator);
+
+            return {
+                weekOf: new Date(weekOf),
+                operators: new Set<Operator>(drivers)
             };
         });
 }

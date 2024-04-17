@@ -141,25 +141,27 @@ function doOperdateVacationRelief() {
         .map(({ weekOf, assignments }): Event[] => {
             const bid = assignments.get(driver);
 
-            if (bid === undefined) {
-                return [];
-            } else {
-                const schedule = [
-                    bid.sunday, bid.monday, bid.tuesday,
-                    bid.wednesday, bid.thursday, bid.friday, bid.saturday
-                ];
+            switch (bid) {
+                case undefined:
+                case false:
+                    return [];
+                default:
+                    const schedule = [
+                        bid.sunday, bid.monday, bid.tuesday,
+                        bid.wednesday, bid.thursday, bid.friday, bid.saturday
+                    ];
 
-                const events: Event[] = [];
+                    const events: Event[] = [];
 
-                let currentDay = weekOf;
-                for (const run of schedule) {
-                    if (run !== undefined) {
-                        events.push(...createRunEvents(run, currentDay));
+                    let currentDay = weekOf;
+                    for (const run of schedule) {
+                        if (run !== undefined) {
+                            events.push(...createRunEvents(run, currentDay));
+                        }
+                        currentDay = getTomorrow(currentDay);
                     }
-                    currentDay = getTomorrow(currentDay);
-                }
 
-                return events;
+                    return events;
             }
         })
         .flat();
@@ -219,23 +221,40 @@ function doOperdateLookup() {
         return;
     }
 
-    // Create the new sheet.
     const date = new Date(response.getResponseText());
+    const runs = readRuns();
+    const bids = readBids(runs);
+
+    // Create the new sheet.
+    let row = 1;
+
     const sheet = SpreadsheetApp
         .getActiveSpreadsheet()
         .insertSheet(
             "Schedule for " +
             `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`
         );
+    sheet
+        .getRange(`A${row}:G${row}`)
+        .setValues([
+            [
+                "Run #", "Block", "Report Time",
+                "Split From", "Split To", "Sign Out", "Driver"
+            ]
+        ]);
+    sheet.setFrozenRows(1);
+    sheet.setFrozenColumns(1);
+
+    row++;
 
     // Map bids to their assigned drivers for the requested week.
-    const runs = readRuns();
-    const bids = readBids(runs);
-
     const vacationRelief = getCurrentVacationWeek(date, readVacationRelief(bids));
     const vacationReliefByBid = new Map<string, Operator>(
         Array.from(vacationRelief?.assignments ?? [])
-            .map(([driver, bid]) => [bid.number, driver])
+            .map(
+                ([driver, bid]) => bid !== false ? [bid.number, driver] : undefined
+            )
+            .filter(entry => entry !== undefined) as [string, Operator][]
     );
     const bidsWithAssigned: [bid: Bid, driver: Operator][] =
         Array.from(bids.values())
@@ -256,19 +275,39 @@ function doOperdateLookup() {
             .filter(entry => entry !== undefined) as [string, Operator][]
     );
 
-    // Print all runs with their assigned drivers.
-    sheet
-        .getRange("A1:G1")
-        .setValues([
-            [
-                "Run #", "Block", "Report Time",
-                "Split From", "Split To", "Sign Out", "Driver"
-            ]
-        ]);
+    // Identify drivers that have a day off or are on vacation.
+    const dayOffOnBid = new Set<Operator>(
+        bidsWithAssigned
+            .map(([bid, driver]) =>
+                getWorkDayForBid(bid, date) ? driver : undefined)
+            .filter(driver => driver !== undefined) as Operator[]
+    );
 
-    for (const [i, number, run] of Array.from(runs)
-            .map(([number, run], i) => [i, number, run] as [number, string, Run])) {
-        const row = i + 2;
+    const onVacation = getCurrentVacationWeek(date, readVacations())
+        ?.operators ?? new Set<Operator>();
+
+    const dayOffOnExtraBoardBid = getWorkDayForExtraBoard(
+        readExtraBoardDaysOff(), date);
+    const vacationReliefDrivers = new Set<Operator>(
+        vacationRelief?.assignments?.keys() ?? []);
+    const vacationReliefDriversWithoutRuns = new Set<Operator>(
+        Array.from(vacationRelief?.assignments?.entries() ?? [])
+            .filter(([, assignment]) => assignment === false)
+            .map(([driver]) => driver)
+    );
+    const dayOffOnExtraBoard = unionOfSets(
+        differenceOfSets(
+            dayOffOnExtraBoardBid,
+            vacationReliefDrivers
+        ),
+        intersectionOfSets(
+            dayOffOnExtraBoardBid,
+            differenceOfSets(vacationReliefDriversWithoutRuns, onVacation)
+        )
+    );
+
+    // Print all runs with their assigned drivers.
+    for (const [number, run] of Array.from(runs)) {
         const driver = runsWithAssigned.get(number) ?? "";
 
         let block: string;
@@ -322,6 +361,31 @@ function doOperdateLookup() {
                 formatTime(signOut),
                 driver
             ]]);
+
+        row++;
+    }
+
+    // Print all drivers with days off or that are on vacation.
+    for (const driver of Array.from(dayOffOnExtraBoard)) {
+        sheet  
+            .getRange(`A${row}:G${row}`)
+            .setValues([[
+                ...new Array(6).fill("OFF"),
+                driver
+            ]]);
+
+        row++;
+    }
+
+    for (const driver of Array.from(onVacation)) {
+        sheet  
+            .getRange(`A${row}:G${row}`)
+            .setValues([[
+                ...new Array(6).fill("VAC"),
+                driver
+            ]]);
+
+        row++;
     }
 }
 
@@ -353,5 +417,27 @@ function getWorkDayForBid(bid: Bid, date: Date): Run | undefined {
             return bid.friday;
         case 6:
             return bid.saturday;
+    }
+}
+
+function getWorkDayForExtraBoard(
+        daysOff: ExtraBoardDaysOff, date: Date): Set<Operator> {
+    switch (date.getDay()) {
+        case 0:
+            return daysOff.sunday;
+        case 1:
+            return daysOff.monday;
+        case 2:
+            return daysOff.tuesday;
+        case 3:
+            return daysOff.wednesday;
+        case 4:
+            return daysOff.thursday;
+        case 5:
+            return daysOff.friday;
+        case 6:
+            return daysOff.saturday;
+        default:
+            return new Set<Operator>();
     }
 }
