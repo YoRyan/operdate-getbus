@@ -170,7 +170,7 @@ function readVacationRelief(bids: Map<string, Bid>): VacationRelief[] {
         });
 }
 
-/** Standardize driver names for reliable commparison. */
+/** Standardize driver names for reliable comparison. */
 function readOperator(name: string): Operator {
     return name
         .toUpperCase()
