@@ -1,71 +1,11 @@
-[![clasp](https://img.shields.io/badge/built%20with-clasp-4285f4.svg)](https://github.com/google/clasp) [![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/lcenchew/dev-container-gas)
-# Dev Container - Google Apps Script
-A setup for working on Google Apps Script in a VS Code or Gitpod container
+# Operdate
 
-## Quick Start
+A work bid tracker for Golden Empire Transit operators. Bid and work run data are stored in a (non-public) Google Sheets document. This bound App Script provides advanced functionality.
 
-Login the user
-```
-clasp login --no-localhost
-```
+## Features
 
-Create a new Project
-```
-clasp create --title "Title" --type standalone --rootDir ./src
-clasp create --title "Title" --type forms --rootDir ./src
-clasp create --title "Title" --parentId "*******" --rootDir ./src
-```
-
-Clone and work on an existing project
-```
-clasp clone "*******" --rootDir ./src
-```
-
-Watch and push code when saved
-```
-clasp push --watch
-```
-
-Edit (if need to)
-- .clasp.json
-```
-"rootDir": "./src"
-```
-- appsscript.json
-```
-"timeZone": "Asia/Singapore"
-```
-
-### other useful commands
-
-Open in the script editor
-```
-clasp open
-```
-
-## Clasp
-
-- https://github.com/google/clasp
-- https://developers.google.com/apps-script/guides/clasp
-
-## VS Code
-
-Preamble
-- Install Docker Desktop if not installed
-- Install the Remote Development extension pack in VS Code
-- Run Docker Desktop
-- Open repo folder with VS Code using *Run Remote-Containers: Open Folder in Container...*
-
-Container composition
-- using this [Dockerfile](https://github.com/microsoft/vscode-dev-containers/blob/master/containers/typescript-node-12/.devcontainer/Dockerfile)
-- `FROM mcr.microsoft.com/vscode/devcontainers/typescript-node:12`
-
-## Gitpod
-
-- Click on this button [![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/lcenchew/dev-container-gas)
-- Sign in with yout Github account to start
-
-Container conposition
-- `FROM gitpod/workspace-full` [Dockerfile](https://github.com/gitpod-io/workspace-images/blob/master/full/Dockerfile)
-- `FROM buildpack-deps:focal` [Dockerfile](https://github.com/docker-library/buildpack-deps/blob/master/ubuntu/focal/Dockerfile)
-- Ubuntu Focal based
+- Populates Google Calendar with your work assignments
+- Calculates total pay per work assignment
+- Incorporates vacation and vacation relief bids
+- Easy lookup of any date to trade shifts or days off
+- Is written in TypeScript for your own sanity
