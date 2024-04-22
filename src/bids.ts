@@ -124,7 +124,7 @@ function getRunPay(run: Run): string {
             break;
     }
 
-    return "pays " + formatTime(minutes);
+    return formatTime(minutes);
 }
 
 function readBids(runs: Map<string, Run>): Map<string, Bid> {

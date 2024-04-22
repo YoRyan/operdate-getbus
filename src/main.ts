@@ -178,7 +178,7 @@ function createRunEvents(run: Run, date: Date): Event[] {
                 const { block, span } = run.piece;
                 const events: Event[] = [
                     [
-                        `Run ${number} Block ${block} (${getRunPay(run)})`,
+                        `Run ${number} Block ${block} (pays ${getRunPay(run)})`,
                         ...createDateSpan(date, ...span)
                     ]
                 ];
@@ -186,7 +186,7 @@ function createRunEvents(run: Run, date: Date): Event[] {
                 if (run.secondPiece) {
                     const { block, span } = run.secondPiece;
                     events.push([
-                        `Run ${number} Block ${block} (${getRunPay(run)})`,
+                        `Run ${number} Block ${block} (pays ${getRunPay(run)})`,
                         ...createDateSpan(date, ...span)
                     ]);
                 }
@@ -197,14 +197,14 @@ function createRunEvents(run: Run, date: Date): Event[] {
             {
                 const events: Event[] = [
                     [
-                        `Run ${number} (${getRunPay(run)})`,
+                        `Run ${number} (pays ${getRunPay(run)})`,
                         ...createDateSpan(date, ...run.span)
                     ]
                 ];
 
                 if (run.secondSpan) {
                     events.push([
-                        `Run ${number} (${getRunPay(run)})`,
+                        `Run ${number} (pays ${getRunPay(run)})`,
                         ...createDateSpan(date, ...run.secondSpan)
                     ]);
                 }
@@ -235,10 +235,10 @@ function doOperdateLookup() {
             `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`
         );
     sheet
-        .getRange(`A${row}:G${row}`)
+        .getRange(`A${row}:H${row}`)
         .setValues([
             [
-                "Run #", "Block", "Report Time",
+                "Run #", "Total Pay", "Block", "Report Time",
                 "Split From", "Split To", "Sign Out", "Driver"
             ]
         ]);
@@ -351,9 +351,10 @@ function doOperdateLookup() {
         }
 
         sheet
-            .getRange(`A${row}:G${row}`)
+            .getRange(`A${row}:H${row}`)
             .setValues([[
                 number,
+                getRunPay(run),
                 block,
                 formatTime(reportTime),
                 splitFrom ? formatTime(splitFrom) : "",
@@ -369,9 +370,9 @@ function doOperdateLookup() {
     for (const driver of Array.from(dayOffOnBid)
             .concat(Array.from(dayOffOnExtraBoard))) {
         sheet  
-            .getRange(`A${row}:G${row}`)
+            .getRange(`A${row}:H${row}`)
             .setValues([[
-                ...new Array(6).fill("OFF"),
+                ...new Array(7).fill("OFF"),
                 driver
             ]]);
 
@@ -380,9 +381,9 @@ function doOperdateLookup() {
 
     for (const driver of Array.from(onVacation)) {
         sheet  
-            .getRange(`A${row}:G${row}`)
+            .getRange(`A${row}:H${row}`)
             .setValues([[
-                ...new Array(6).fill("VAC"),
+                ...new Array(7).fill("VAC"),
                 driver
             ]]);
 
