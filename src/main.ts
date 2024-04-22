@@ -295,15 +295,19 @@ function doOperdateLookup() {
             .filter(([, assignment]) => assignment === false)
             .map(([driver]) => driver)
     );
-    const dayOffOnExtraBoard = unionOfSets(
-        differenceOfSets(
-            dayOffOnExtraBoardBid,
-            vacationReliefDrivers
+
+    const dayOff = unionOfSets(
+        unionOfSets(
+            differenceOfSets(
+                dayOffOnExtraBoardBid,
+                vacationReliefDrivers
+            ),
+            intersectionOfSets(
+                dayOffOnExtraBoardBid,
+                differenceOfSets(vacationReliefDriversWithoutRuns, onVacation)
+            )
         ),
-        intersectionOfSets(
-            dayOffOnExtraBoardBid,
-            differenceOfSets(vacationReliefDriversWithoutRuns, onVacation)
-        )
+        dayOffOnBid
     );
 
     // Print all runs with their assigned drivers.
@@ -367,8 +371,7 @@ function doOperdateLookup() {
     }
 
     // Print all drivers with days off or that are on vacation.
-    for (const driver of Array.from(dayOffOnBid)
-            .concat(Array.from(dayOffOnExtraBoard))) {
+    for (const driver of Array.from(dayOff)) {
         sheet  
             .getRange(`A${row}:H${row}`)
             .setValues([[
