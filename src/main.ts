@@ -279,7 +279,7 @@ function doOperdateLookup() {
     const dayOffOnBid = new Set<Operator>(
         bidsWithAssigned
             .map(([bid, driver]) =>
-                getWorkDayForBid(bid, date) ? driver : undefined)
+                getWorkDayForBid(bid, date) ? undefined : driver)
             .filter(driver => driver !== undefined) as Operator[]
     );
 
@@ -366,7 +366,8 @@ function doOperdateLookup() {
     }
 
     // Print all drivers with days off or that are on vacation.
-    for (const driver of Array.from(dayOffOnExtraBoard)) {
+    for (const driver of Array.from(dayOffOnBid)
+            .concat(Array.from(dayOffOnExtraBoard))) {
         sheet  
             .getRange(`A${row}:G${row}`)
             .setValues([[
